@@ -38,6 +38,7 @@ cmd:option('-image_root', '', 'In case the image paths have to be preprended wit
 -- For evaluation on MSCOCO images from some split:
 cmd:option('-input_h5','','path to the h5file containing the preprocessed dataset. empty = fetch from model checkpoint.')
 cmd:option('-input_json','','path to the json file containing additional info and vocab. empty = fetch from model checkpoint.')
+cmd:option('-output_json','','path to the json file containing additional info and vocab. empty = fetch from model checkpoint.')
 cmd:option('-split', 'test', 'if running on MSCOCO images, which split to use: val|test|train')
 cmd:option('-coco_json', '', 'if nonempty then use this file in DataLoaderRaw (see docs there). Used only in MSCOCO test evaluation, where we have a specific json file of only test set images.')
 -- misc
@@ -59,7 +60,7 @@ if opt.gpuid >= 0 then
   require 'cunn'
   if opt.backend == 'cudnn' then require 'cudnn' end
   cutorch.manualSeed(opt.seed)
-  cutorch.setDevice(opt.gpuid + 1) -- note +1 because lua is 1-indexed
+  -- cutorch.setDevice(opt.gpuid + 1) -- note +1 because lua is 1-indexed
 end
 
 -------------------------------------------------------------------------------
@@ -110,6 +111,7 @@ local function eval_split(split, evalopt)
   local loss_sum = 0
   local loss_evals = 0
   local predictions = {}
+  local sent_id = 1000000
   while true do
 
     -- fetch a batch of data
@@ -135,7 +137,8 @@ local function eval_split(split, evalopt)
     local seq = protos.lm:sample(feats, sample_opts)
     local sents = net_utils.decode_sequence(vocab, seq)
     for k=1,#sents do
-      local entry = {image_id = data.infos[k].id, caption = sents[k]}
+      local entry = {image_id = data.infos[k].id, caption = sents[k], id = sent_id}
+      sent_id = sent_id + 1
       if opt.dump_path == 1 then
         entry.file_name = data.infos[k].file_path
       end
@@ -177,6 +180,7 @@ if lang_stats then
 end
 
 if opt.dump_json == 1 then
-  -- dump the json
-  utils.write_json('vis/vis.json', split_predictions)
+  out = {}
+  out['annotations'] = split_predictions
+  utils.write_json(opt.output_json, out)
 end
