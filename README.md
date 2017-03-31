@@ -1,3 +1,13 @@
+# Evaluation
+
+- Edit variables in the Makefile
+  - Set `COCO_ROOT`
+  - Set GID to the suitable GPU ID
+  
+- Generate captions
+  - Generate single caption: `make eval` (by default, beam_size = 2)
+  - Generate multiple caption: `make eval_beam` (with beam_size from 1 to 10)
+
 
 # NeuralTalk2
 
